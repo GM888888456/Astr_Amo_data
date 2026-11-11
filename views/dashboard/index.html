@@ -729,13 +729,15 @@ document.getElementById("btnPersonMerge").addEventListener("click", async () => 
    和「我想永远陪伴你」的陪伴面板同一套渲染：球面撒点 + 3D 力导向 + 透视投影，
    拖动旋转、滚轮缩放、双击回正，远的线淡、近的线亮，节点带辉光。
    这里只是只读展示，增删改仍在陪伴面板里做。 */
-// 和「陪伴」面板完全一致的五档：仇人黑、抵触黄、普通白、熟识紫、恋人粉。
+// 和「陪伴」面板完全一致的五档：仇人黑、抵触黄、陌生人蓝、熟识紫、恋人粉。
+// 「普通/陌生人」原来是白色，浅底上几乎看不见，改成 66ccff。
 const NEURON_TIERS = ["仇恨", "抵触", "普通", "熟识", "恋人"];
+const NEURON_TIER_LABELS = { 仇恨: "仇人", 抵触: "抵触", 普通: "陌生人", 熟识: "熟人", 恋人: "恋人" };
 const NEURON_COLORS = {
-  仇恨: "#1f1f1f", 抵触: "#e0b341", 普通: "#ffffff",
+  仇恨: "#1f1f1f", 抵触: "#e0b341", 普通: "#66ccff",
   熟识: "#9b8fd0", 恋人: "#e06a9a",
 };
-const NEURON_STROKES = { 普通: "#cfc9d8" };
+const NEURON_STROKES = { 普通: "#4fb8e8" };
 const REL_RANK = { 仇恨: 0, 抵触: 1, 普通: 2, 熟识: 3, 恋人: 4 };
 
 function neuronTier(relation) {
@@ -976,7 +978,7 @@ function renderGraph(items) {
       dot.style.cssText = "display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;background:" +
         String(relColor(kind) || "transparent");
       span.appendChild(dot);
-      span.appendChild(document.createTextNode(String(kind)));
+      span.appendChild(document.createTextNode(String(NEURON_TIER_LABELS[kind] || kind)));
       legend.appendChild(span);
     });
   }
