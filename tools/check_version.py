@@ -2,12 +2,16 @@
 # -*- coding: utf-8 -*-
 """发版校验：metadata.yaml / CHANGELOG.md / README.md / main.py 四处版本号必须一致。
 
-还检查仓库自己定的版本号规则（见 README「版本号规则」）：
-- 尾号取偶数 0/2/4/6/8；
-- 版本号里不出现数字 1 和 7。
+版本号规则（x.y.z）：
+- 第二位、第三位只能是 0-9，**逢十进一**：3.8.9 → 3.9.0；3.9.9 → 4.0.0；
+- 首位不做限制，可以是多位数：9.9.9 再进一位就是 10.0.0（不是 1.0.0.0）；
+- 测试版：动第三位；发布版：动第二位、第三位归零；大版本：首位 +1。
 
 用法：
-    python tools/check_version.py
+    python tools/check_version.py          # 校验
+    python tools/check_version.py --next test      # 打印下一个测试版号
+    python tools/check_version.py --next release   # 打印下一个发布版号
+    python tools/check_version.py --next major     # 打印下一个大版本号
 退出码 0 = 通过，1 = 有问题（会打印原因）。
 """
 
@@ -54,12 +58,39 @@ def code_version():
     return match.group(1) if match else ""
 
 
+def next_version(version, kind="test"):
+    """按规则进位：第三位 0-9 逢十进一，第二位同理；首位不限、可多位数。"""
+    major, minor, patch = (int(part) for part in version.split("."))
+    if kind in ("major", "大版本"):
+        return "%d.0.0" % (major + 1)
+    if kind in ("release", "发布", "minor"):
+        minor += 1
+        patch = 0
+    else:
+        patch += 1
+        if patch > 9:
+            patch = 0
+            minor += 1
+    if minor > 9:
+        minor = 0
+        major += 1
+    return "%d.%d.%d" % (major, minor, patch)
+
+
 def check_rules(version):
-    """只校验格式；升位规则见 README：测试动末位、发布动第二位、大版本动首位。"""
+    """校验格式与进位规则；升位规则见 README「版本号规则」。"""
     parts = version.split(".")
     if len(parts) != 3 or not all(part.isdigit() for part in parts):
         return ["版本号应该是 x.y.z（三段数字）"]
-    return []
+    major, minor, patch = parts
+    problems = []
+    if len(minor) != 1:
+        problems.append("第二位只能是 0-9（逢十进一：3.8.9 → 3.9.0）")
+    if len(patch) != 1:
+        problems.append("第三位只能是 0-9（逢十进一：3.8.9 → 3.9.0）")
+    if major != str(int(major)):
+        problems.append("首位不能有前导零")
+    return problems
 
 
 REPO_OWNER = "GM888888456"
@@ -83,13 +114,31 @@ def repo_problem():
     return ""
 
 
-def main():
+def current_version():
     versions = {
         "metadata.yaml": metadata_version(),
         "CHANGELOG.md": changelog_version(),
         "README.md": readme_version(),
         "main.py": code_version(),
     }
+    return versions
+
+
+def main(argv=None):
+    argv = list(argv if argv is not None else sys.argv[1:])
+    if argv and argv[0] == "--next":
+        kind = argv[1] if len(argv) > 1 else "test"
+        versions = current_version()
+        values = {value for value in versions.values() if value}
+        if len(values) != 1:
+            print("版本号不一致，先修一致再算下一个：")
+            for name, value in versions.items():
+                print("  %-16s %s" % (name, value))
+            return 1
+        print(next_version(values.pop(), kind))
+        return 0
+
+    versions = current_version()
     missing = [name for name, value in versions.items() if not value]
     if missing:
         print("读不到版本号: %s" % "、".join(missing))
