@@ -83,7 +83,7 @@ else:  # 运行时：包模式优先，按文件直接加载时退回绝对导�
                 return ""
 
 PLUGIN_NAME = "Astr_Amo_data"
-PLUGIN_VERSION = "2.9.0"
+PLUGIN_VERSION = "2.9.1"
 DEFAULT_BOT_ID = "default"
 
 if TYPE_CHECKING:  # 只给类型检查看：包内相对导入
@@ -474,6 +474,29 @@ class AmoDataPlugin(Star):
     def __init__(self, context: Context, config: Optional[dict] = None):
         super().__init__(context)
         self.config = config or {}
+
+        # 配置自愈：升级/重装/改目录名之后，把空掉的 key 从快照补回来。
+        # 快照在 plugin_data/<插件名>/config_snapshot.json（0600），升级不覆盖、
+        # schema 重写也删不到它。
+        try:
+            from .config_guard import heal as _cfg_heal, fallback_data_dir as _cfg_data_dir
+        except ImportError:
+            try:
+                from config_guard import heal as _cfg_heal, fallback_data_dir as _cfg_data_dir
+            except Exception:
+                _cfg_heal = None
+        if _cfg_heal is not None:
+            try:
+                _guard_dir = os.path.dirname(os.path.abspath(__file__))
+                _healed = _cfg_heal(self.config, plugin_name=PLUGIN_NAME,
+                                    plugin_dir=_guard_dir,
+                                    data_dir=_cfg_data_dir(_guard_dir, PLUGIN_NAME),
+                                    logger=logger)
+                if _healed.get("restored"):
+                    logger.info("[config] 本次启动补回 %d 项配置（%s）"
+                                % (len(_healed["restored"]), ", ".join(_healed["restored"])))
+            except Exception as exc:
+                logger.debug("[config] 配置自愈失败: %s" % exc)
         # 时区：服务器常在 UTC 跑，按配置时区算「今天/昨天/现在」，否则日期会错一天
         try:
             self.timezone_name = _clock.configure(str(self.config.get("timezone") or "Asia/Shanghai"))
