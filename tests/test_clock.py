@@ -40,10 +40,11 @@ class ClockTests(unittest.TestCase):
         time.tzset()
 
     def test_configure_moves_process_clock_by_eight_hours(self):
-        before = datetime.now()
         self.assertEqual(clock.configure("Asia/Shanghai"), "Asia/Shanghai")
-        after = datetime.now()
-        self.assertAlmostEqual((after - before).total_seconds(), 8 * 3600, delta=5)
+        # 别假设「跑测试前进程在 UTC」——CI 在 UTC、服务器在 +08:00 都会跑这个用例。
+        # 直接量「本地时间比 UTC 快多少」，跟起始时区无关。
+        gap = (datetime.now(timezone.utc).replace(tzinfo=None) - datetime.now()).total_seconds()
+        self.assertAlmostEqual(-gap, 8 * 3600, delta=5)
 
     def test_now_agrees_with_process_clock(self):
         clock.configure("Asia/Shanghai")
