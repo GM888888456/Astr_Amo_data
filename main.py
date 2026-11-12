@@ -83,7 +83,7 @@ else:  # 运行时：包模式优先，按文件直接加载时退回绝对导�
                 return ""
 
 PLUGIN_NAME = "Astr_Amo_data"
-PLUGIN_VERSION = "2.8.1"
+PLUGIN_VERSION = "2.8.2"
 DEFAULT_BOT_ID = "default"
 
 if TYPE_CHECKING:  # 只给类型检查看：包内相对导入

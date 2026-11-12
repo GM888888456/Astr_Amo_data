@@ -1350,7 +1350,12 @@ function amoLinkDot(ok) { return '<span style="color:' + (ok ? "#2e9e5b" : "#d83
 function amoLinkRender(d) {
   const box = document.getElementById("linkbar");
   if (!box) return;
-  if (!d) { box.textContent = "连接状态：读不到（面板没连上本插件接口）"; return; }
+  box.onclick = null;
+  if (!d) {
+    box.innerHTML = '连接状态：读取失败（health 接口没响应，<span style="text-decoration:underline;cursor:pointer">点这里重试</span>）';
+    box.onclick = () => amoLinkLoad();
+    return;
+  }
   const hb = (typeof d.last_heartbeat === "number" && d.last_heartbeat >= 0)
     ? ("心跳 " + d.last_heartbeat + " 秒前") : "从未连上过";
   box.innerHTML = [
