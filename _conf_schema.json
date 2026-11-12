@@ -150,5 +150,47 @@
     "type": "int",
     "description": "备份保留份数",
     "default": 7
+  },
+  "satiety_enabled": {
+    "type": "bool",
+    "description": "开启饱食度/水分",
+    "hint": "关掉后不再衰减、面板也看不到这两项；已经掉下去的值保留，不会归零。",
+    "default": true
+  },
+  "satiety_init": {
+    "type": "int",
+    "description": "初始饱食度",
+    "hint": "第一次建档时的饱食度和水分（0-100）。80 表示「刚吃过但不撑」。",
+    "default": 80
+  },
+  "satiety_per_hour": {
+    "type": "float",
+    "description": "每小时掉多少饱食度",
+    "hint": "默认 2.5 = 4 小时掉 10 点。改成 1.25 就是 8 小时掉 10 点。",
+    "default": 2.5
+  },
+  "hydration_per_hour": {
+    "type": "float",
+    "description": "每小时掉多少水分",
+    "hint": "默认 5 = 2 小时掉 10 点；比饱食度掉得快，因为人更容易渴。",
+    "default": 5.0
+  },
+  "satiety_hungry": {
+    "type": "int",
+    "description": "低于多少算饥饿",
+    "hint": "到这个值以下，终端会往心流里注入「饿了、注意力不集中」。默认 30。",
+    "default": 30
+  },
+  "satiety_starving": {
+    "type": "int",
+    "description": "低于多少算极度饥饿",
+    "hint": "到这个值以下会强制负面心流，并进入生病风险区（通知医疗）。默认 10。",
+    "default": 10
+  },
+  "satiety_tick_minutes": {
+    "type": "int",
+    "description": "多少分钟结算一次",
+    "hint": "只影响「饿了」被发现得早晚，衰减本身按真实时间差算，迟到不会饿错。",
+    "default": 30
   }
 }

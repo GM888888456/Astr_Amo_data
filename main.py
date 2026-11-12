@@ -83,7 +83,7 @@ else:  # 运行时：包模式优先，按文件直接加载时退回绝对导�
                 return ""
 
 PLUGIN_NAME = "Astr_Amo_data"
-PLUGIN_VERSION = "2.8.3"
+PLUGIN_VERSION = "2.9.0"
 DEFAULT_BOT_ID = "default"
 
 if TYPE_CHECKING:  # 只给类型检查看：包内相对导入
@@ -461,6 +461,15 @@ class MemoryAPI:
             return False
 
 
+if TYPE_CHECKING:  # 只给类型检查看
+    from . import store_vitals as _sv
+else:  # 运行时：包模式优先，按文件直接加载时退回绝对导入
+    try:
+        from . import store_vitals as _sv
+    except ImportError:
+        import store_vitals as _sv
+
+
 class AmoDataPlugin(Star):
     def __init__(self, context: Context, config: Optional[dict] = None):
         super().__init__(context)
@@ -484,6 +493,19 @@ class AmoDataPlugin(Star):
         self.db_path = os.path.join(data_dir, "amo_data.db")
         self.store = DataStore(self.db_path, settings=self._store_settings())
         self.mem = MemoryAPI(self.store)
+        # 生存状态（饱食度/水分）：速率可由面板改，默认就是「4 小时 -10 / 2 小时 -10」。
+        # 这里直接改模块常量，是为了让衰减仍然只算一次（口径唯一）。
+        try:
+            _sv.SATIETY_PER_HOUR = float(self._cfg_float("satiety_per_hour", _sv.SATIETY_PER_HOUR))
+            _sv.HYDRATION_PER_HOUR = float(self._cfg_float("hydration_per_hour", _sv.HYDRATION_PER_HOUR))
+        except Exception as exc:
+            logger.debug("[amo_data] 生存状态速率配置无效，用默认值: %s" % exc)
+        self._vitals_task = None
+        if self._cfg_bool("satiety_enabled", True):
+            try:
+                self._vitals_task = asyncio.create_task(self._vitals_loop())
+            except Exception:
+                self._vitals_task = None
         self._safe_register_web_apis()
         self._loop_task = None
         try:
@@ -575,6 +597,123 @@ class AmoDataPlugin(Star):
             return value.strip().lower() in ("1", "true", "yes", "on", "是", "开")
         return bool(value)
 
+    # ---------- 生存状态（饱食度 / 水分 / 食材柜） ----------
+    async def _vitals_loop(self) -> None:
+        """按配置间隔把时间差结算掉。
+
+        结算本身是「拿 now 减上次结算时间」，所以这个循环迟到、错过、重启都无所谓，
+        只影响「饿到阈值」这事儿被发现的早晚。
+        """
+        import asyncio
+        interval = max(1, self._cfg_int("satiety_tick_minutes", 30)) * 60
+        while True:
+            try:
+                await asyncio.sleep(interval)
+                bot_id = self._bot_id({}, write=True)
+                if bot_id:
+                    self.tick_vitals(bot_id)
+            except asyncio.CancelledError:
+                return
+            except Exception as exc:
+                logger.debug("[amo_data] 生存状态结算失败: %s" % exc)
+
+    def _vitals_bot(self, bot_id: str = "") -> str:
+        """跨插件调用时通常不带 bot_id：落唯一那个人格。"""
+        return str(bot_id or "").strip() or self._bot_id({}, write=True)
+
+    def vitals(self, bot_id: str = "", tick: bool = True) -> dict:
+        """当前饱食度/水分。**跨插件只读这里**，不许直接改库。"""
+        bot = self._vitals_bot(bot_id)
+        try:
+            data = self.tick_vitals(bot) if tick else self.store.vitals_get(bot)
+        except Exception as exc:
+            logger.debug("[amo_data] 读生存状态失败: %s" % exc)
+            return {}
+        data["enabled"] = self._cfg_bool("satiety_enabled", True)
+        data["hungry_at"] = self._cfg_int("satiety_hungry", 30)
+        data["starving_at"] = self._cfg_int("satiety_starving", 10)
+        return data
+
+    def tick_vitals(self, bot_id: str = "") -> dict:
+        bot = self._vitals_bot(bot_id)
+        return self.store.vitals_tick(bot)
+
+    def eat(self, amount: float, bot_id: str = "", note: str = "") -> dict:
+        """进食：只加饱食度。扣钱在金融，谁花的钱谁记账。"""
+        return self.store.vitals_eat(self._vitals_bot(bot_id), amount, note)
+
+    def drink(self, amount: float, bot_id: str = "", note: str = "") -> dict:
+        return self.store.vitals_drink(self._vitals_bot(bot_id), amount, note)
+
+    def pantry(self, bot_id: str = "") -> list:
+        return self.store.pantry_list(self._vitals_bot(bot_id))
+
+    def pantry_add(self, item: str, qty: float = 1.0, bot_id: str = "") -> dict:
+        return self.store.pantry_add(self._vitals_bot(bot_id), item, qty)
+
+    def pantry_take(self, item: str, qty: float = 1.0, bot_id: str = "") -> dict:
+        return self.store.pantry_take(self._vitals_bot(bot_id), item, qty)
+
+    def pantry_has(self, item: str, qty: float = 1.0, bot_id: str = "") -> float:
+        return self.store.pantry_qty(self._vitals_bot(bot_id), item)
+
+    async def api_state_vitals(self):
+        payload = await self._body()
+        return {"code": 0, "data": self.vitals(payload.get("bot_id") or "",
+                                               tick=str(payload.get("tick", "1")) != "0")}
+
+    async def api_state_tick(self):
+        payload = await self._body()
+        return {"code": 0, "data": self.tick_vitals(payload.get("bot_id") or "")}
+
+    async def api_state_eat(self):
+        payload = await self._body()
+        try:
+            amount = float(payload.get("amount") or 0)
+        except (TypeError, ValueError):
+            return {"code": 1, "msg": "amount 不是数字"}
+        if amount <= 0:
+            return {"code": 1, "msg": "amount 必须大于 0"}
+        return {"code": 0, "data": self.eat(amount, payload.get("bot_id") or "",
+                                            str(payload.get("note") or ""))}
+
+    async def api_state_drink(self):
+        payload = await self._body()
+        try:
+            amount = float(payload.get("amount") or 0)
+        except (TypeError, ValueError):
+            return {"code": 1, "msg": "amount 不是数字"}
+        if amount <= 0:
+            return {"code": 1, "msg": "amount 必须大于 0"}
+        return {"code": 0, "data": self.drink(amount, payload.get("bot_id") or "",
+                                              str(payload.get("note") or ""))}
+
+    async def api_state_pantry(self):
+        payload = await self._body()
+        return {"code": 0, "data": {"items": self.pantry(payload.get("bot_id") or "")}}
+
+    async def api_state_pantry_add(self):
+        payload = await self._body()
+        item = str(payload.get("item") or "").strip()
+        if not item:
+            return {"code": 1, "msg": "缺少 item"}
+        try:
+            qty = float(payload.get("qty") or 1)
+        except (TypeError, ValueError):
+            qty = 1.0
+        return {"code": 0, "data": self.pantry_add(item, qty, payload.get("bot_id") or "")}
+
+    async def api_state_pantry_take(self):
+        payload = await self._body()
+        item = str(payload.get("item") or "").strip()
+        if not item:
+            return {"code": 1, "msg": "缺少 item"}
+        try:
+            qty = float(payload.get("qty") or 1)
+        except (TypeError, ValueError):
+            qty = 1.0
+        return {"code": 0, "data": self.pantry_take(item, qty, payload.get("bot_id") or "")}
+
     def _store_settings(self) -> dict:
         """把面板配置翻译成 DataStore 的检索参数（缺的用默认值）。"""
         return {
@@ -657,6 +796,8 @@ class AmoDataPlugin(Star):
         "/message/delete", "/message/clear",
         "/log/delete", "/log/clear",
         "/schedule/delete", "/maintenance",
+        "/state/tick", "/state/eat", "/state/drink",
+        "/state/pantry/add", "/state/pantry/take",
     })
 
     def _safe_register_web_apis(self) -> None:
@@ -720,6 +861,13 @@ class AmoDataPlugin(Star):
             ("/log/clear", self.api_log_clear),
             ("/schedule", self.api_schedule),
             ("/schedule/delete", self.api_schedule_delete),
+            ("/state/vitals", self.api_state_vitals),
+            ("/state/tick", self.api_state_tick),
+            ("/state/eat", self.api_state_eat),
+            ("/state/drink", self.api_state_drink),
+            ("/state/pantry", self.api_state_pantry),
+            ("/state/pantry/add", self.api_state_pantry_add),
+            ("/state/pantry/take", self.api_state_pantry_take),
             ("/maintenance", self.api_maintenance),
         ]
         prefixes = [PLUGIN_NAME, getattr(self, "name", PLUGIN_NAME)]
@@ -1236,6 +1384,11 @@ class AmoDataPlugin(Star):
 
     # ---------- 生命周期 ----------
     async def terminate(self):
+        try:
+            if getattr(self, "_vitals_task", None) is not None:
+                self._vitals_task.cancel()
+        except Exception:
+            pass
         try:
             if self._loop_task is not None:
                 self._loop_task.cancel()

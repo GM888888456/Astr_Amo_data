@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.9.0（饱食度与水分（生存状态））
+
+- 新增 `vitals`/`pantry` 两张表与 `store_vitals.py`：饱食度 4 小时 −10、水分 2 小时 −10，按真实时间差结算（重启不跑偏）；`/state/vitals`、`/state/eat`、`/state/drink`、`/state/pantry*` 共 7 个接口；对外只给 `vitals()/eat()/drink()/pantry_*()`，别的插件不许直接改库。
+
 ## 2.8.3（事件记忆 14 天删除）
 
 - 按规则改成 **7 天降权、14 天删除**（原来是 15 天归档、30 天删除，拖太久）；
