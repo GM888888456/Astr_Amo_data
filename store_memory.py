@@ -17,6 +17,11 @@ import threading
 import time
 import urllib.request
 
+try:  # 生命周期：tier / pinned 由数据插件自己判
+    from .lifecycle import should_pin, tier_for
+except ImportError:  # pragma: no cover - 按文件直接加载时
+    from lifecycle import should_pin, tier_for  # type: ignore
+
 if TYPE_CHECKING:  # 只给类型检查看：包内相对导入
     from .store_util import (
         RECALL_HALF_LIFE_DAYS,
@@ -334,12 +339,17 @@ class MemoryMixin(_StoreBase):
                     self.conn.commit()
                     return {"ok": True, "memory_id": int(cand["id"]), "duplicate": True}
 
+            kind_value = _clean(kind, 32) or "fact"
+            # tier / pinned 由数据插件自己判，各模块不用操心遗忘规则
+            tier_value = tier_for(kind_value, importance)
+            pin_value = 1 if should_pin(kind_value, importance) else 0
             cur = self.conn.execute(
                 "INSERT INTO memories(bot_id, uid, scope, group_id, kind, content, "
-                "importance, hit_count, created_at, last_hit_at, idem_key) "
-                "VALUES(?,?,?,?,?,?,?,?,?,?,?)",
-                (bot_id, uid, scope, group_id, _clean(kind, 32) or "fact", text,
-                 importance, hit_count, created_at, last_hit_at, idem_key),
+                "importance, hit_count, created_at, last_hit_at, idem_key, tier, pinned) "
+                "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (bot_id, uid, scope, group_id, kind_value, text,
+                 importance, hit_count, created_at, last_hit_at, idem_key,
+                 tier_value, pin_value),
             )
             self.conn.commit()
             memory_id = int(cur.lastrowid or 0)
@@ -451,6 +461,83 @@ class MemoryMixin(_StoreBase):
                 self.conn.commit()
         return {"candidate": len(ids), "archived": len(ids) if apply else 0,
                 "ids": ids[:50]}
+    def backfill_tiers(self) -> int:
+        """老库回填：把 tier 按 kind 重新算一遍，pinned 同步。
+
+        只补 ``tier`` 为空或还是默认值的历史行，不动已经判过的不删原则：
+        认不出的 kind 一律落 ``fact``（= 保留）。
+        """
+        from .lifecycle import should_pin, tier_for
+
+        with self.lock:
+            rows = self.conn.execute(
+                "SELECT id, kind, importance, COALESCE(tier,'') AS tier FROM memories"
+            ).fetchall()
+            updates = []
+            for row in rows:
+                kind = str(row["kind"] or "")
+                importance = float(row["importance"] or 0.5)
+                want_tier = tier_for(kind, importance)
+                want_pin = 1 if should_pin(kind, importance) else 0
+                if str(row["tier"] or "") != want_tier:
+                    updates.append((want_tier, want_pin, int(row["id"])))
+            if updates:
+                self.conn.executemany(
+                    "UPDATE memories SET tier=?, pinned=? WHERE id=?", updates
+                )
+                self.conn.commit()
+        return len(updates)
+
+    def cleanup_lifecycle(self, bot_id: str = "", now: Optional[int] = None,
+                          apply: bool = True) -> Dict[str, Any]:
+        """按 tier 清理：event 层 15 天归档、30 天删除，core/fact 一律不动。
+
+        这是唯一允许删记忆的地方。``pinned`` 和 ``core``/``fact`` 层永远在
+        SQL 条件里被排除——不依赖调用方自觉。
+        """
+        from .lifecycle import EVENT_ARCHIVE_DAYS, EVENT_DELETE_DAYS, cleanup_plan
+
+        now = int(now or _now())
+        where, params = _bot_filter(bot_id)
+        with self.lock:
+            rows = self.conn.execute(
+                "SELECT id, kind, tier, pinned, created_at, importance FROM memories"
+                " WHERE 1=1" + where +
+                " AND COALESCE(status,'active')='active'",
+                list(params),
+            ).fetchall()
+
+        archive_ids, delete_ids = [], []
+        for row in rows:
+            plan = cleanup_plan(dict(row), now)
+            if plan == "archive":
+                archive_ids.append(int(row["id"]))
+            elif plan == "delete":
+                delete_ids.append(int(row["id"]))
+
+        if apply and (archive_ids or delete_ids):
+            with self.lock:
+                if archive_ids:
+                    self.conn.executemany(
+                        "UPDATE memories SET status='archived' WHERE id=?",
+                        [(i,) for i in archive_ids],
+                    )
+                if delete_ids:
+                    self.conn.executemany(
+                        "DELETE FROM memories WHERE id=? AND COALESCE(tier,'fact')='event'"
+                        " AND COALESCE(pinned,0)=0",
+                        [(i,) for i in delete_ids],
+                    )
+                self.conn.commit()
+        return {
+            "archive_days": EVENT_ARCHIVE_DAYS,
+            "delete_days": EVENT_DELETE_DAYS,
+            "archive_candidate": len(archive_ids),
+            "delete_candidate": len(delete_ids),
+            "archived": len(archive_ids) if apply else 0,
+            "deleted": len(delete_ids) if apply else 0,
+        }
+
     def compress_memories(self, bot_id: str, apply: bool = True,
                           min_jaccard: float = 0.7, limit: int = 600) -> Dict[str, Any]:
         """周度整理：同一天的摘要合并成一条，近重复记忆标成过期（不删数据）。"""

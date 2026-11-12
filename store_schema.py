@@ -274,6 +274,10 @@ class SchemaMixin(_StoreBase):
                 ("merged_count", "ALTER TABLE memories ADD COLUMN merged_count INTEGER DEFAULT 1"),
                 ("status", "ALTER TABLE memories ADD COLUMN status TEXT DEFAULT 'active'"),
                 ("superseded_by", "ALTER TABLE memories ADD COLUMN superseded_by INTEGER DEFAULT 0"),
+                # 生命周期：tier 决定清不清，pinned 决定是不是永久保留。
+                # 老库默认落 event（最保守的「可删」），但下面会按 kind 回填一次。
+                ("tier", "ALTER TABLE memories ADD COLUMN tier TEXT DEFAULT 'event'"),
+                ("pinned", "ALTER TABLE memories ADD COLUMN pinned INTEGER DEFAULT 0"),
             ):
                 if column in mcols:
                     continue

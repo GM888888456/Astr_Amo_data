@@ -696,7 +696,7 @@ class PluginApiCase(unittest.TestCase):
         self.plugin.config["backup_daily"] = True
 
         result = self.run_coro(self.plugin._maybe_weekly_cleanup(BOT))
-        self.assertEqual(set(result), {"compress", "archive"})
+        self.assertEqual(set(result), {"compress", "archive", "lifecycle"})
         self.assertTrue(result["compress"]["applied"])
         self.assertEqual(result["archive"]["archived"], 0)
         self.assertEqual(self.run_coro(self.plugin._maybe_weekly_cleanup(BOT)),

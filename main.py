@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-"""我想永远记住你（Astr_Amo_data）。
+"""我想永远陪着你-记忆（Astr_Amo_data）。
 
-给「我想永远陪伴你」配套的轻量数据后端：记忆、画像、关系网、缓存。
+给「我想永远陪着你-终端」配套的轻量数据后端：记忆、画像、关系网、缓存。
 
 - 不做通用大而全的记忆服务，只服务 Amo；
 - 身份直接用平台 uid，不做哈希、不做五元组；
@@ -83,7 +83,7 @@ else:  # 运行时：包模式优先，按文件直接加载时退回绝对导�
                 return ""
 
 PLUGIN_NAME = "Astr_Amo_data"
-PLUGIN_VERSION = "2.7.1"
+PLUGIN_VERSION = "2.7.2"
 DEFAULT_BOT_ID = "default"
 
 
@@ -336,6 +336,20 @@ class MemoryAPI:
             logger.debug("[amo_data] 记忆压缩失败: %s" % exc)
             return {"merged_summaries": 0, "merged_near_duplicates": 0, "applied": bool(apply)}
 
+    async def _cleanup_lifecycle(self, bot_id: str) -> dict:
+        """回填老数据的 tier，然后按 tier 清理。"""
+        try:
+            backfilled = await asyncio.to_thread(self._store.backfill_tiers)
+        except Exception:
+            backfilled = 0
+        try:
+            cleaned = await asyncio.to_thread(self._store.cleanup_lifecycle, bot_id)
+        except Exception as exc:
+            return {"error": str(exc)}
+        if isinstance(cleaned, dict):
+            cleaned["backfilled"] = backfilled
+        return cleaned
+
     async def archive_stale(self, bot_id: str, days: int = 90,
                             max_importance: float = 0.3, apply: bool = True) -> dict:
         """把长期没被想起的低重要度记忆归档（不删除）。"""
@@ -469,7 +483,7 @@ class AmoDataPlugin(Star):
             self._loop_task = asyncio.create_task(self._maintenance_loop())
         except Exception:
             self._loop_task = None
-        logger.info("[amo_data] 我想永远记住你 %s 已加载（%s）" % (PLUGIN_VERSION, self.db_path))
+        logger.info("[amo_data] 我想永远陪着你-记忆 %s 已加载（%s）" % (PLUGIN_VERSION, self.db_path))
 
     async def _maybe_daily_backup(self, bot_id: str) -> str:
         """每天自动备份一次数据库，保留 backup_keep 份。"""
@@ -509,6 +523,11 @@ class AmoDataPlugin(Star):
             result["archive"] = await self.mem.archive_stale(bot_id, 90, 0.3, apply=True)
         except Exception as exc:
             result["archive"] = {"error": str(exc)}
+        try:
+            # 生命周期清理：只动 event 层，core/fact/pinned 一律不碰
+            result["lifecycle"] = await self._cleanup_lifecycle(bot_id)
+        except Exception as exc:
+            result["lifecycle"] = {"error": str(exc)}
         try:
             self.store.cache_set(bot_id, key, "1", ttl=8 * 86400)
         except Exception:
@@ -1212,4 +1231,4 @@ class AmoDataPlugin(Star):
             self.store.close()
         except Exception:
             pass
-        logger.info("[amo_data] 我想永远记住你已卸载")
+        logger.info("[amo_data] 我想永远陪着你-记忆已卸载")

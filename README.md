@@ -1,4 +1,4 @@
-# 我想永远记住你（Astr_Amo_data）
+# 我想永远陪着你 · 记忆（Astrbot_Amo_data）
 
 > GitHub：https://github.com/GM888888456/Astrbot_Amo_data
 >
@@ -7,6 +7,15 @@
 给「我想永远陪伴你」（Astrbot_Amo_forever）配套的**轻量数据后端**。
 
 陪伴插件只负责聊天和心情，**记忆、画像、关系网、日程缓存**都在这里。
+
+## 2.7.2（记忆生命周期：tier 分层 + 三段清理）
+
+- 新增 `lifecycle.py`：把 kind 映射成 core / fact / event 三层；
+- 新增 `tier` / `pinned` 两列，老库自动补列并按 kind 回填；
+- `cleanup_lifecycle()`：event 层 7 天降权、15 天归档、30 天删除，
+  **core / fact / pinned 在 SQL 条件里被排除**，不依赖调用方自觉；
+- 认不出的 kind 一律按 fact 保留——删错不可逆，猜错的方向必须是安全的那个；
+- 改名「我想永远陪着你-记忆」。
 
 ## 2.7.1 关系图配色
 

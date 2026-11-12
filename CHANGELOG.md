@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.7.2（记忆生命周期：tier 分层 + 三段清理）
+
+- 新增 `lifecycle.py`：把 kind 映射成 core / fact / event 三层；
+- 新增 `tier` / `pinned` 两列，老库自动补列并按 kind 回填；
+- `cleanup_lifecycle()`：event 层 7 天降权、15 天归档、30 天删除，
+  **core / fact / pinned 在 SQL 条件里被排除**，不依赖调用方自觉；
+- 认不出的 kind 一律按 fact 保留——删错不可逆，猜错的方向必须是安全的那个；
+- 改名「我想永远陪着你-记忆」。
+
 ## 2.7.1（关系图陌生人配色）
 
 - 「普通 / 陌生人」档从白色 `#ffffff` 改成蓝色 `#66ccff`，描边 `#4fb8e8`；
