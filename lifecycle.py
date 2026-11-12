@@ -10,7 +10,7 @@
 
 - ``core``：关系、资产、职业、城市、偏好、当日 look —— **永不进删除队列**；
 - ``fact``：约定、共同经历、礼物事实 —— 只降权，不自动删；
-- ``event``：单次流水、临时提醒、行程 —— 7 天降权、15 天归档、30 天真删。
+- ``event``：单次流水、临时提醒、行程 —— 7 天降权、14 天真删。
 
 ``kind`` 是各模块自由填的字符串，**不能直接当 TTL 依据**（一个笔误就能删错东西）。
 这里把它映射成 tier，映射不到的按 ``fact`` 处理——也就是保留。
@@ -31,10 +31,12 @@ CORE_KINDS = frozenset({
     "identity", "bot_id", "daily_look", "city", "habit", "pinned",
 })
 
-#: 三段策略（天）。改这里就改了全部行为。
+#: 两段策略（天）。改这里就改了全部行为。
 EVENT_FADE_DAYS = 7      # 之后降权，只有被明确检索才出
-EVENT_ARCHIVE_DAYS = 15  # 之后归档，不参与召回，但数据还在
-EVENT_DELETE_DAYS = 30   # 之后真删
+EVENT_DELETE_DAYS = 14   # 之后真删
+#: 兼容旧名字：现在没有单独的「归档期」，归档和删除是同一天（先归档再删）。
+#: 留着这个常量是因为外部代码和返回值里还在用它。
+EVENT_ARCHIVE_DAYS = EVENT_DELETE_DAYS
 
 TIER_CORE = "core"
 TIER_FACT = "fact"
@@ -91,8 +93,6 @@ def cleanup_plan(row: dict, now: int) -> str:
     age_days = (now - created) / 86400.0
     if age_days >= EVENT_DELETE_DAYS:
         return "delete"
-    if age_days >= EVENT_ARCHIVE_DAYS:
-        return "archive"
     if age_days >= EVENT_FADE_DAYS:
         return "fade"
     return "keep"

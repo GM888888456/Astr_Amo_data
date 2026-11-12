@@ -69,17 +69,21 @@ class PlanTests(unittest.TestCase):
     def test_event_fades_after_7_days(self):
         self.assertEqual(cleanup_plan(row(created_at=NOW - 8 * DAY), NOW), "fade")
 
-    def test_event_archived_after_15_days(self):
+    def test_event_archived_and_deleted_after_14_days(self):
+        """7 天降权、14 天删除：没有再单独留一个「归档期」。"""
+        at_archive = cleanup_plan(row(created_at=NOW - (EVENT_ARCHIVE_DAYS - 1) * DAY), NOW)
+        self.assertEqual(at_archive, "fade")
         self.assertEqual(
             cleanup_plan(row(created_at=NOW - (EVENT_ARCHIVE_DAYS + 1) * DAY), NOW),
-            "archive",
+            "delete",
         )
 
-    def test_event_deleted_after_30_days(self):
+    def test_event_deleted_after_14_days(self):
         self.assertEqual(
             cleanup_plan(row(created_at=NOW - (EVENT_DELETE_DAYS + 1) * DAY), NOW),
             "delete",
         )
+        self.assertEqual(EVENT_DELETE_DAYS, 14)
 
     def test_core_never_deleted(self):
         self.assertEqual(
@@ -124,8 +128,8 @@ class WeightTests(unittest.TestCase):
 
 class ConstantTests(unittest.TestCase):
     def test_ordering(self):
-        self.assertLess(EVENT_FADE_DAYS, EVENT_ARCHIVE_DAYS)
-        self.assertLess(EVENT_ARCHIVE_DAYS, EVENT_DELETE_DAYS)
+        self.assertLess(EVENT_FADE_DAYS, EVENT_DELETE_DAYS)
+        self.assertEqual(EVENT_ARCHIVE_DAYS, EVENT_DELETE_DAYS, "归档和删除是同一天")
 
 
 if __name__ == "__main__":
