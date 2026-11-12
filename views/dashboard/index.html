@@ -52,12 +52,11 @@
 
 
 <nav>
-  <button class="active" data-tab="relations">关系网</button>
+  <button class="active" data-tab="relations">关系</button>
   <button data-tab="profiles">画像</button>
   <button data-tab="persons">人物</button>
   <button data-tab="chat">聊天</button>
   <button data-tab="schedule">日程</button>
-  <button data-tab="logs">日志</button>
   <button data-tab="backup">备份</button>
 </nav>
 
@@ -198,9 +197,10 @@
       <div class="hint">每天自动备份一次，保留最近 7 份，放在 plugin_data/Astr_Amo_data/backups/；恢复是合并语义，不会删现有记忆。</div>
     </div>
     <div class="card"><div id="backupList" class="list"></div></div>
-  </section>
-
-  <section class="panel" id="panel-logs">
+    <div class="card">
+      <div class="row"><strong class="grow">日志</strong></div>
+      <div class="hint">运行日志保留 7 天，到期自动删除；和备份放在一起，出问题时一起看。</div>
+    </div>
     <div class="card">
       <div class="row">
         <select id="logLevel" class="grow">
@@ -215,7 +215,8 @@
       <div class="hint">默认保留 7 天，到期自动删除。</div>
     </div>
     <div class="card"><div id="logList" class="list"></div></div>
-  </section>
+    </section>
+
 </main>
 
 <footer style="padding:0 16px 28px;text-align:center;font-size:11px;color:var(--muted)">
@@ -430,8 +431,7 @@ document.querySelectorAll("nav button").forEach((btn) => {
     if (tab === "relations") loadRelations();
     if (tab === "chat") loadChat();
     if (tab === "schedule") loadSchedule();
-    if (tab === "logs") loadLogs();
-    if (tab === "backup") loadBackups();
+    if (tab === "backup") { loadBackups(); loadLogs(); }
   });
 });
 
