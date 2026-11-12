@@ -8,6 +8,16 @@
 
 陪伴插件只负责聊天和心情，**记忆、画像、关系网、日程缓存**都在这里。
 
+## 2.8.0（连接状态：我自己说清楚连没连上）
+
+- 新增 `link.py`：探测终端（Astrbot_Amo_forever）与记忆库自己的连接状态，
+  返回 `terminal_connected` / `terminal_version` / `data_connected` / `bot_id` /
+  `last_heartbeat` / `error`；
+- 新增 `/health` 接口，`/status` 里也带一份 `link`；
+- 面板顶部加一行连接状态：终端 v? ｜ 记忆库 v? ｜ bot_id ｜ 心跳。
+  这段代码属于挂载插件自己——终端挂了，面板也要能说清楚是谁没连上。
+
+
 ## 2.7.2（记忆生命周期：tier 分层 + 三段清理）
 
 - 新增 `lifecycle.py`：把 kind 映射成 core / fact / event 三层；

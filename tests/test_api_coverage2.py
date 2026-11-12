@@ -5,7 +5,7 @@
 
 1. ``MemoryAPI`` 每个方法在 store 整体抛异常时都要返回**安全默认值**
    （聊天主链路绝不能被数据层拖崩）；
-2. ``AmoDataPlugin`` 的 31 个 ``api_*`` 处理器、CSRF 守卫、请求体读取、
+2. ``AmoDataPlugin`` 的 32 个 ``api_*`` 处理器、CSRF 守卫、请求体读取、
    bot_id 归一、每日备份/每周整理与维护循环。
 
 全部用真实临时库，断言返回 dict 的关键字段和落库结果，不联网、不 sleep。
@@ -933,7 +933,7 @@ class PluginApiCase(unittest.TestCase):
             self.assertNotIn("/Astr_Amo_data/old-route", routes)
             self.assertIn("/other/keep", routes)
             own = [route for route in routes if route.startswith("/Astr_Amo_data/")]
-            self.assertEqual(len(own), 31)
+            self.assertEqual(len(own), 32)
             self.assertIn("/Astr_Amo_data/status", own)
             self.assertIn("/Astr_Amo_data/backup/now", own)
         finally:
@@ -960,7 +960,7 @@ class PluginApiCase(unittest.TestCase):
         finally:
             self.context = old
         try:
-            self.assertEqual(len(weird.registered), 31)
+            self.assertEqual(len(weird.registered), 32)
         finally:
             plugin2.store.close()
 

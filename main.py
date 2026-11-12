@@ -83,8 +83,16 @@ else:  # 运行时：包模式优先，按文件直接加载时退回绝对导�
                 return ""
 
 PLUGIN_NAME = "Astr_Amo_data"
-PLUGIN_VERSION = "2.7.2"
+PLUGIN_VERSION = "2.8.0"
 DEFAULT_BOT_ID = "default"
+
+if TYPE_CHECKING:  # 只给类型检查看：包内相对导入
+    from . import link as _link
+else:  # 运行时：包模式优先，按文件直接加载时退回绝对导入
+    try:
+        from . import link as _link
+    except Exception:
+        import link as _link  # type: ignore
 
 
 class MemoryAPI:
@@ -682,6 +690,7 @@ class AmoDataPlugin(Star):
             logger.warning("[amo_data] 清理旧 Web API 路由失败（重载后请完整重启）: %s" % exc)
         routes = [
             ("/status", self.api_status),
+            ("/health", self.api_health),
             ("/profiles", self.api_profiles),
             ("/profile", self.api_profile),
             ("/profile/save", self.api_profile_save),
@@ -790,6 +799,10 @@ class AmoDataPlugin(Star):
                 return {"code": 1, "msg": str(exc)}
         return wrapper
 
+    async def api_health(self):
+        """我自己连没连上终端。面板顶部那一行就看这个。"""
+        return {"code": 0, "data": _link.probe(self)}
+
     async def api_status(self):
         payload = await self._body()
         bot_id = self._bot_id(payload)
@@ -798,6 +811,7 @@ class AmoDataPlugin(Star):
             "data": {
                 "version": PLUGIN_VERSION,
                 "bot_id": bot_id,
+                "link": _link.probe(self),
                 "db": self.db_path,
                 "counts": self.store.stats(bot_id),
                 "bots": self.store.bot_ids(),
