@@ -438,6 +438,7 @@ document.querySelectorAll("nav button").forEach((btn) => {
 async function loadStatus() {
   try {
     const data = objectFrom(await call("status")) || {};
+    if (data.link) amoLinkRender(data.link);
     const counts = data.counts || {};
     document.getElementById("stat").textContent =
       "画像 " + (counts.profiles || 0) + " · 记忆 " + (counts.memories || 0) +
@@ -1362,7 +1363,14 @@ function amoLinkRender(d) {
 }
 
 async function amoLinkLoad() {
-  try { amoLinkRender(objectFrom(await call("health"))); } catch (e) { amoLinkRender(null); }
+  // 脚本可能比桥接先就绪，头几次拿不到数据就重试，别直接画「读不到」
+  for (let i = 0; i < 20; i += 1) {
+    let d = null;
+    try { d = objectFrom(await call("health")); } catch (e) { d = null; }
+    if (d && (d.terminal_connected !== undefined)) { amoLinkRender(d); return; }
+    await new Promise((resolve) => setTimeout(resolve, 400));
+  }
+  amoLinkRender(null);
 }
 
 amoLinkLoad();
