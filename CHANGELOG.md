@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.0.5（记录：只增不改的决策账本）
+
+- 新表 `records`（没有更新/删除接口），记「买了什么 / 想了什么 / 为什么没买 / 为什么买或不买股票」。
+- 接口：`POST /record_add` `{kind,title,detail,reason,amount,extra}`、`POST /records` `{kind,limit,offset}`（倒序，带 total）。
+- 面板「记录」页随后接上（与终端同风格，无卡片描边）。
+
 ## 3.0.4（删掉的缓存不再被写回）
 
 - 新增 `cache_blocked` 表：面板里删掉某个缓存键（日程/世界观等）后，插件再写同一个键会被拦下，不再「删了又回来」。想恢复就先删掉 blocked 记录（`cache_unblock`）。

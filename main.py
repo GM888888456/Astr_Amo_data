@@ -83,7 +83,7 @@ else:  # 运行时：包模式优先，按文件直接加载时退回绝对导�
                 return ""
 
 PLUGIN_NAME = "Astr_Amo_data"
-PLUGIN_VERSION = "3.0.4"
+PLUGIN_VERSION = "3.0.5"
 DEFAULT_BOT_ID = "default"
 
 if TYPE_CHECKING:  # 只给类型检查看：包内相对导入
@@ -883,6 +883,8 @@ class AmoDataPlugin(Star):
             ("/log/delete", self.api_log_delete),
             ("/log/clear", self.api_log_clear),
             ("/schedule", self.api_schedule),
+            ("/record_add", self.api_record_add),
+            ("/records", self.api_records),
             ("/schedule/delete", self.api_schedule_delete),
             ("/state/vitals", self.api_state_vitals),
             ("/state/tick", self.api_state_tick),
@@ -1354,6 +1356,35 @@ class AmoDataPlugin(Star):
         if not key:
             return {"code": 1, "msg": "缺少 key"}
         return {"code": 0, "data": {"deleted": self.store.cache_delete(bot_id, key)}}
+
+    async def api_record_add(self):
+        """加一条记录（只增不改）：买了什么、想了什么、为什么没买、为什么买/不买股票。"""
+        payload = await self._body()
+        bot_id = self._bot_id(payload, write=True)
+        title = str(payload.get("title") or "").strip()
+        if not title:
+            return {"code": 1, "msg": "缺少 title"}
+        rid = self.store.record_add(
+            bot_id,
+            str(payload.get("kind") or "note").strip(),
+            title,
+            str(payload.get("detail") or ""),
+            str(payload.get("reason") or ""),
+            float(payload.get("amount") or 0),
+            payload.get("extra"),
+        )
+        return {"code": 0, "data": {"id": rid}}
+
+    async def api_records(self):
+        payload = await self._body()
+        bot_id = self._bot_id(payload, write=False)
+        try:
+            limit = int(payload.get("limit") or 100)
+            offset = int(payload.get("offset") or 0)
+        except Exception:
+            limit, offset = 100, 0
+        return {"code": 0, "data": self.store.records_list(
+            bot_id, str(payload.get("kind") or ""), limit, offset)}
 
     async def api_maintenance(self):
         """手动跑一次保留策略：压缩老聊天 + 删过期日志。"""

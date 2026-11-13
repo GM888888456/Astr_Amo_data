@@ -8,6 +8,7 @@ from typing import Any
 from typing import Dict
 from typing import List
 import json
+import time
 
 if TYPE_CHECKING:  # 只给类型检查看：包内相对导入
     from .store_util import (
@@ -164,6 +165,47 @@ class LogsMixin(_StoreBase):
             )
             self.conn.commit()
             return bool(cur.rowcount)
+    # ---------- 记录（只增不改，买了什么/想了什么/为什么没买/为什么买股票） ----------
+    def record_add(self, bot_id: str, kind: str, title: str, detail: str = "",
+                   reason: str = "", amount: float = 0.0, extra: Any = None) -> int:
+        payload = ""
+        if extra is not None:
+            try:
+                payload = json.dumps(extra, ensure_ascii=False)
+            except Exception:
+                payload = ""
+        with self.lock:
+            cur = self.conn.execute(
+                "INSERT INTO records(bot_id, kind, title, detail, reason, amount, ts, extra) "
+                "VALUES(?,?,?,?,?,?,?,?)",
+                (str(bot_id), str(kind or ""), str(title or "")[:200], str(detail or "")[:2000],
+                 str(reason or "")[:1000], float(amount or 0), _now(), payload),
+            )
+            self.conn.commit()
+            return int(cur.lastrowid or 0)
+
+    def records_list(self, bot_id: str = "", kind: str = "", limit: int = 100,
+                     offset: int = 0) -> dict:
+        where, params = _bot_filter(bot_id)
+        if kind:
+            where += " AND kind=?"
+            params = list(params) + [str(kind)]
+        limit = max(1, min(int(limit or 100), 500))
+        offset = max(0, int(offset or 0))
+        with self.lock:
+            rows = self.conn.execute(
+                "SELECT id, kind, title, detail, reason, amount, ts FROM records "
+                "WHERE 1=1" + where + " ORDER BY id DESC LIMIT ? OFFSET ?",
+                params + [limit, offset],
+            ).fetchall()
+            total = self.conn.execute(
+                "SELECT COUNT(*) AS n FROM records WHERE 1=1" + where, params
+            ).fetchone()["n"]
+        items = [dict(row) for row in rows]
+        for item in items:
+            item["time"] = time.strftime("%Y-%m-%d %H:%M", time.localtime(int(item.get("ts") or 0)))
+        return {"items": items, "total": int(total or 0), "limit": limit, "offset": offset}
+
     def cache_keys(self, bot_id: str = "") -> List[str]:
         where, params = _bot_filter(bot_id)
         with self.lock:

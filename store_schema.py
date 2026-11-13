@@ -141,6 +141,19 @@ class SchemaMixin(_StoreBase):
                     PRIMARY KEY (bot_id, key)
                 );
 
+                CREATE TABLE IF NOT EXISTS records (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    bot_id TEXT NOT NULL DEFAULT '',
+                    kind TEXT NOT NULL DEFAULT '',
+                    title TEXT NOT NULL DEFAULT '',
+                    detail TEXT NOT NULL DEFAULT '',
+                    reason TEXT NOT NULL DEFAULT '',
+                    amount REAL NOT NULL DEFAULT 0,
+                    ts INTEGER NOT NULL DEFAULT 0,
+                    extra TEXT NOT NULL DEFAULT ''
+                );
+                CREATE INDEX IF NOT EXISTS idx_records_bot_ts ON records(bot_id, ts DESC);
+
                 CREATE TABLE IF NOT EXISTS cache (
                     bot_id TEXT NOT NULL,
                     key TEXT NOT NULL,

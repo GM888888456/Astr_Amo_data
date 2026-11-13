@@ -960,7 +960,7 @@ class PluginApiCase(unittest.TestCase):
         finally:
             self.context = old
         try:
-            self.assertEqual(len(weird.registered), 39)
+            self.assertEqual(len(weird.registered), 41)
         finally:
             plugin2.store.close()
 
