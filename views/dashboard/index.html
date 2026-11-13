@@ -68,6 +68,7 @@
   <button data-tab="chat">聊天</button>
   <button data-tab="schedule">日程</button>
   <button data-tab="backup">备份</button>
+  <button data-tab="records">记录</button>
 </nav>
 
 <main>
@@ -231,6 +232,13 @@
     </div>
     </section>
 
+
+  <section class="panel" id="panel-records">
+    <div class="card">
+      <div class="hint">只增不改：买了什么、拍了什么、想过但没买、为什么买股票。按时间倒序。</div>
+    </div>
+    <div class="list" id="recordList"></div>
+  </section>
 </main>
 
 <footer style="padding:0 16px 28px;text-align:center;font-size:11px;color:var(--muted)">
@@ -443,6 +451,7 @@ document.querySelectorAll("nav button").forEach((btn) => {
     const tab = btn.dataset.tab;
     if (tab === "persons") loadPersons();
     if (tab === "relations") loadRelations();
+    if (tab === "records") loadRecords();
     if (tab === "chat") loadChat();
     if (tab === "schedule") loadSchedule();
     if (tab === "backup") { loadBackups(); loadLogs(); }
@@ -1110,6 +1119,53 @@ async function loadRelations() {
     const box = document.getElementById("relLegend");
     if (box) box.textContent = "读取失败：" + error.message;
   }
+}
+
+async function loadRecords() {
+  const box = document.getElementById("recordList");
+  if (!box) return;
+  box.textContent = "";
+  let res = await bridgeCall("records", { limit: 200 });
+  if (!res || res.__error) {
+    try { res = await httpCall("records", { limit: 200 }); } catch (e) { res = { __error: e.message }; }
+  }
+  if (!res || res.__error) {
+    box.innerHTML = '<div class="hint">读取失败：' + ((res && res.__error) || "接口未就绪") + '</div>';
+    return;
+  }
+  const data = res.data || res;
+  const rows = data.items || [];
+  if (!rows.length) { box.innerHTML = '<div class="hint">还没有记录。</div>'; return; }
+  const KIND = { buy: "买", skip: "没买", photo: "照片", stock: "股票", note: "想法" };
+  rows.forEach((row) => {
+    const line = document.createElement("div");
+    line.style.padding = "10px 2px";
+    line.style.borderBottom = "1px solid rgba(128,128,128,.25)";
+    const head = document.createElement("div");
+    head.style.display = "flex";
+    head.style.justifyContent = "space-between";
+    head.style.gap = "10px";
+    const title = document.createElement("span");
+    title.textContent = (KIND[row.kind] || row.kind || "") + " · " + (row.title || "");
+    const time = document.createElement("span");
+    time.className = "hint";
+    time.textContent = row.time || "";
+    head.appendChild(title); head.appendChild(time);
+    line.appendChild(head);
+    if (row.reason) {
+      const why = document.createElement("div");
+      why.className = "hint";
+      why.textContent = "为什么：" + row.reason;
+      line.appendChild(why);
+    }
+    if (row.amount) {
+      const amt = document.createElement("div");
+      amt.className = "hint";
+      amt.textContent = "金额：" + Number(row.amount).toFixed(2) + "¥";
+      line.appendChild(amt);
+    }
+    box.appendChild(line);
+  });
 }
 
 document.getElementById("btnRelReload").addEventListener("click", loadRelations);
