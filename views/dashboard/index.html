@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>我想永远陪着你-记忆</title>
 <style>
-  :root { --bg:#f7f5f8; --card:#fff; --text:#2c2430; --muted:#8a8090; --line:#ebe4ee; --pink:#d4578a; }
+  :root { --bg:#f4f4f6; --card:#f4f4f6; --text:#2c2738; --muted:#857d94; --line:#e7e2f0; --pink:#e8489a; --ok:#0284c7; }
   * { box-sizing: border-box; }
   body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif; font-size:14px; }
   header { padding:14px 16px; background:var(--card); border-bottom:1px solid var(--line); display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:5; }
@@ -20,14 +20,14 @@
   .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px; margin-bottom:10px; }
   .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
   .grow { flex:1; min-width:120px; }
-  input, select, textarea { width:100%; border:1px solid var(--line); border-radius:8px; padding:7px 9px; font-size:13px; background:#fff; color:var(--text); font-family:inherit; }
+  input, select, textarea { width:100%; border:1px solid var(--line); border-radius:8px; padding:7px 9px; font-size:13px; background:var(--card); color:var(--text); font-family:inherit; }
   textarea { min-height:60px; resize:vertical; }
   label { display:block; font-size:12px; color:var(--muted); margin:6px 0 3px; }
   button.primary { background:var(--pink); color:#fff; border:none; border-radius:8px; padding:7px 14px; font-size:13px; cursor:pointer; }
   button.ghost { background:transparent; border:1px solid var(--line); border-radius:8px; padding:6px 10px; font-size:12px; cursor:pointer; color:var(--muted); }
   button.danger { color:#c0392b; border-color:#f0d7d3; }
   .list { display:flex; flex-direction:column; gap:6px; }
-  .item { border:1px solid var(--line); border-radius:10px; padding:9px 10px; display:flex; gap:10px; align-items:center; cursor:pointer; background:#fff; }
+  .item { border:1px solid var(--line); border-radius:10px; padding:9px 10px; display:flex; gap:10px; align-items:center; cursor:pointer; background:var(--card); }
   .item:hover { border-color:#e0d3e6; }
   .item .name { font-weight:600; font-size:13px; }
   .item .sub { font-size:11px; color:var(--muted); margin-top:2px; word-break:break-all; }
