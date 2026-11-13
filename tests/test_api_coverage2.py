@@ -642,7 +642,9 @@ class PluginApiCase(unittest.TestCase):
         self.assertEqual(deleted["code"], 0)
         self.assertTrue(deleted["data"]["deleted"])
         again = self.run_api(self.plugin.api_schedule_delete, {"key": "worldview"})
-        self.assertFalse(again["data"]["deleted"])
+        # 幂等：删过再删也返回成功，避免面板误报失败；但键被 blocked，写不回来
+        self.assertTrue(again["data"]["deleted"])
+        self.assertTrue(self.plugin.store.cache_blocked(BOT, "worldview"))
 
     # ---------- 手动维护 ----------
     def test_maintenance_endpoints(self) -> None:
