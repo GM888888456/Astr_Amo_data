@@ -33,8 +33,14 @@ class TierTests(unittest.TestCase):
             self.assertEqual(tier_for(kind), "core", kind)
 
     def test_event_kinds(self):
-        for kind in ("expense", "weather_alert", "route", "draw_record"):
+        for kind in ("expense", "weather_alert", "route", "draw_record",
+                     "photo_record", "his_day"):
             self.assertEqual(tier_for(kind), "event", kind)
+
+    def test_his_day_summary_fades_like_an_event(self):
+        """「他今天干了什么」这类记录按事件走：7 天降权、14 天删除。"""
+        self.assertEqual(tier_for("his_day"), "event")
+        self.assertFalse(should_pin("his_day"))
 
     def test_unknown_defaults_to_fact(self):
         """认不出来的 kind 必须按「保留」处理——删错不可逆。"""

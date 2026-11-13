@@ -22,7 +22,7 @@ from __future__ import annotations
 EVENT_KINDS = frozenset({
     "weather_alert", "reminder", "temporary", "draw_record", "photo_record",
     "expense", "bill", "route", "travel_snippet", "outfit_history",
-    "event", "ephemeral", "notice", "share_record",
+    "event", "ephemeral", "notice", "share_record", "his_day",
 })
 
 #: 明确属于「核心状态」的 kind：这些永远不删。
