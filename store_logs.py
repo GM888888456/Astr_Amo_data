@@ -116,7 +116,27 @@ class LogsMixin(_StoreBase):
             return json.loads(row["value"])
         except Exception:
             return None
+    def cache_blocked(self, bot_id: str, key: str) -> bool:
+        """这个键是不是被用户手动删掉了（删掉之后不许再被写回来）。"""
+        with self.lock:
+            row = self.conn.execute(
+                "SELECT 1 FROM cache_blocked WHERE bot_id=? AND key=?",
+                (str(bot_id), str(key)),
+            ).fetchone()
+        return bool(row)
+
+    def cache_unblock(self, bot_id: str, key: str) -> bool:
+        with self.lock:
+            cur = self.conn.execute(
+                "DELETE FROM cache_blocked WHERE bot_id=? AND key=?", (str(bot_id), str(key))
+            )
+            self.conn.commit()
+            return bool(cur.rowcount)
+
     def cache_set(self, bot_id: str, key: str, value: Any, ttl: int = 0) -> bool:
+        # 用户删掉的键不再自动写回，否则「日程/世界观缓存删不掉」
+        if self.cache_blocked(bot_id, key):
+            return False
         try:
             payload = json.dumps(value, ensure_ascii=False)
         except Exception:
@@ -136,6 +156,11 @@ class LogsMixin(_StoreBase):
         with self.lock:
             cur = self.conn.execute(
                 "DELETE FROM cache WHERE bot_id=? AND key=?", (str(bot_id), str(key))
+            )
+            self.conn.execute(
+                "INSERT INTO cache_blocked(bot_id, key, created_at) VALUES(?,?,?) "
+                "ON CONFLICT(bot_id, key) DO NOTHING",
+                (str(bot_id), str(key), _now()),
             )
             self.conn.commit()
             return bool(cur.rowcount)

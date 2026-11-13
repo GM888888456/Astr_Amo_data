@@ -134,6 +134,13 @@ class SchemaMixin(_StoreBase):
                     PRIMARY KEY (bot_id, a_uid, b_uid)
                 );
 
+                CREATE TABLE IF NOT EXISTS cache_blocked (
+                    bot_id TEXT NOT NULL DEFAULT '',
+                    key TEXT NOT NULL,
+                    created_at INTEGER NOT NULL DEFAULT 0,
+                    PRIMARY KEY (bot_id, key)
+                );
+
                 CREATE TABLE IF NOT EXISTS cache (
                     bot_id TEXT NOT NULL,
                     key TEXT NOT NULL,
