@@ -933,7 +933,7 @@ class PluginApiCase(unittest.TestCase):
             self.assertNotIn("/Astr_Amo_data/old-route", routes)
             self.assertIn("/other/keep", routes)
             own = [route for route in routes if route.startswith("/Astr_Amo_data/")]
-            self.assertEqual(len(own), 39)
+            self.assertEqual(len(own), 41)
             self.assertIn("/Astr_Amo_data/status", own)
             self.assertIn("/Astr_Amo_data/backup/now", own)
         finally:
