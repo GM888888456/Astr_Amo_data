@@ -25,6 +25,9 @@
   .panel { display:none; }
   .panel.active { display:block; }
   .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px; margin-bottom:10px; }
+  /* 一个面板只留一个框：相邻卡片接成一块，接缝就是一条横线 */
+  .panel > .card:not(:last-of-type) { border-bottom-left-radius:0; border-bottom-right-radius:0; padding-bottom:6px; }
+  .panel > .card:not(:first-of-type) { border-top-left-radius:0; border-top-right-radius:0; margin-top:-11px; padding-top:6px; }
   .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
   .grow { flex:1; min-width:120px; }
   input, select, textarea { width:100%; border:1px solid var(--line); border-radius:8px; padding:7px 9px; font-size:13px; background:var(--card); color:var(--text); font-family:inherit; }
