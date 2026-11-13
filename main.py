@@ -83,7 +83,7 @@ else:  # 运行时：包模式优先，按文件直接加载时退回绝对导�
                 return ""
 
 PLUGIN_NAME = "Astr_Amo_data"
-PLUGIN_VERSION = "3.0.6"
+PLUGIN_VERSION = "3.0.7"
 DEFAULT_BOT_ID = "default"
 
 if TYPE_CHECKING:  # 只给类型检查看：包内相对导入
@@ -886,6 +886,7 @@ class AmoDataPlugin(Star):
             ("/record_add", self.api_record_add),
             ("/records", self.api_records),
             ("/schedule/delete", self.api_schedule_delete),
+            ("/schedule/clear", self.api_schedule_clear),
             ("/state/vitals", self.api_state_vitals),
             ("/state/tick", self.api_state_tick),
             ("/state/eat", self.api_state_eat),
@@ -1350,12 +1351,39 @@ class AmoDataPlugin(Star):
         return {"code": 0, "data": {"items": items}}
 
     async def api_schedule_delete(self):
+        """删一条日程/世界观缓存。
+
+        以前这里用 write=True 取 bot_id，列表用的是读 bot_id，两边对不上就出现
+        「点了删除但列表里还在」。现在读、写用同一个 bot_id，并且跨 bot 兜底。
+        """
         payload = await self._body()
-        bot_id = self._bot_id(payload, write=True)
+        bot_id = self._bot_id(payload)
         key = str(payload.get("key") or "").strip()
         if not key:
             return {"code": 1, "msg": "缺少 key"}
-        return {"code": 0, "data": {"deleted": self.store.cache_delete(bot_id, key)}}
+        deleted = self.store.cache_delete(bot_id, key)
+        if not deleted:
+            for other in self.store.bot_ids():
+                if other == bot_id:
+                    continue
+                if self.store.cache_delete(other, key):
+                    deleted = True
+                    break
+        # 已经删过但被 blocked 拦着，也算成功（幂等），不要让面板以为失败
+        return {"code": 0, "data": {"deleted": bool(deleted) or self.store.cache_blocked(bot_id, key),
+                                     "key": key}}
+
+    async def api_schedule_clear(self):
+        """清空全部日程/世界观缓存（错误数据一键清）。"""
+        payload = await self._body()
+        bot_id = self._bot_id(payload)
+        removed = []
+        for other in [bot_id] + [b for b in self.store.bot_ids() if b != bot_id]:
+            for key in self.store.cache_keys(other):
+                if key.startswith("schedule") or key == "worldview":
+                    if self.store.cache_delete(other, key):
+                        removed.append(key)
+        return {"code": 0, "data": {"removed": removed, "count": len(removed)}}
 
     async def api_record_add(self):
         """加一条记录（只增不改）：买了什么、想了什么、为什么没买、为什么买/不买股票。"""

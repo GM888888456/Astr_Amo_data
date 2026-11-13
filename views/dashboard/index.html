@@ -182,7 +182,7 @@
     <div class="card">
       <div class="row">
         <strong class="grow">日程 / 世界观缓存</strong>
-        <button class="ghost" id="btnSchedReload">刷新</button>
+        <button class="ghost" id="btnSchedReload">刷新</button><button class="ghost danger" id="btnSchedClear">清空日程缓存</button>
       </div>
       <div class="hint">跟随陪伴插件的日程保留策略；这里只看和删，不重建。</div>
     </div>
@@ -1274,6 +1274,11 @@ async function viewSchedule(key) {
 }
 
 document.getElementById("btnSchedReload").addEventListener("click", loadSchedule);
+document.getElementById("btnSchedClear").addEventListener("click", async () => {
+  if (!window.confirm("清空所有日程/世界观缓存？")) return;
+  await call("schedule/clear", {});
+  loadSchedule();
+});
 document.getElementById("btnSchedClose").addEventListener("click", () => {
   document.getElementById("schedView").hidden = true;
 });
