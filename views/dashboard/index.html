@@ -66,7 +66,6 @@
   <button data-tab="profiles">画像</button>
   <button data-tab="persons">人物</button>
   <button data-tab="chat">聊天</button>
-  <button data-tab="schedule">日程</button>
   <button data-tab="backup">备份</button>
   <button data-tab="records">记录</button>
 </nav>
@@ -178,25 +177,9 @@
     <div class="card"><div id="chatList" class="list"></div></div>
   </section>
 
-  <section class="panel" id="panel-schedule">
-    <div class="card">
-      <div class="row">
-        <strong class="grow">日程 / 世界观缓存</strong>
-        <button class="ghost" id="btnSchedReload">刷新</button><button class="ghost danger" id="btnSchedClear">清空日程缓存</button>
-      </div>
-      <div class="hint">跟随陪伴插件的日程保留策略；这里只看和删，不重建。</div>
-    </div>
-    <div class="list" id="schedList"></div>
-    <div class="card" id="schedView" hidden>
-      <div class="row">
-        <strong class="grow" id="schedTitle">内容</strong>
-        <button class="ghost" id="btnSchedClose">关闭</button>
-      </div>
-      <textarea id="schedBody" rows="14" readonly></textarea>
-    </div>
-  </section>
 
   <section class="panel" id="panel-backup">
+    <div class="hint">备份是整库快照：画像、记忆、关系、聊天、<b>日程与世界观缓存</b>都在里面，恢复时一起带回。</div>
     <div class="card">
       <div class="row">
         <strong class="grow">记忆备份</strong>
@@ -453,7 +436,6 @@ document.querySelectorAll("nav button").forEach((btn) => {
     if (tab === "relations") loadRelations();
     if (tab === "records") loadRecords();
     if (tab === "chat") loadChat();
-    if (tab === "schedule") loadSchedule();
     if (tab === "backup") { loadBackups(); loadLogs(); }
   });
 });
@@ -1273,8 +1255,10 @@ async function viewSchedule(key) {
   } catch (error) { toast("读取失败：" + error.message, true); }
 }
 
-document.getElementById("btnSchedReload").addEventListener("click", loadSchedule);
-document.getElementById("btnSchedClear").addEventListener("click", async () => {
+const btnSchedReload = document.getElementById("btnSchedReload");
+if (btnSchedReload) btnSchedReload.addEventListener("click", loadSchedule);
+const btnSchedClear = document.getElementById("btnSchedClear");
+if (btnSchedClear) btnSchedClear.addEventListener("click", async () => {
   if (!window.confirm("清空所有日程/世界观缓存？")) return;
   await call("schedule/clear", {});
   loadSchedule();
