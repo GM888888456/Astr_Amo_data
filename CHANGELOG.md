@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.0.9（衣柜搬进记忆库：只放数据，不做搭配）
+
+- 新增 `wardrobe` 表与 `WardrobeMixin`（`store_wardrobe.py`）：衣服库归记忆库保管。
+- 插件新增 6 个异步接口：`wardrobe_rows` / `wardrobe_count` / `wardrobe_save` / `wardrobe_replace_all` / `wardrobe_delete` / `wardrobe_clear`，全部走 `to_thread`，不堵事件循环。
+- 搭配规则（场景、JK 硬配对、按天挑衣服）**仍留终端**：终端是唯一大脑，记忆库只管记住她有哪些衣服。
+- 新增 `tests/test_wardrobe_store.py`（8 条）；这一步只是先把地方腾出来，终端还没切。
+
 ## 3.0.8（删掉「日程」页，日程并入备份）
 
 - 面板去掉「日程」标签和整页（不再单独展示缓存），缓存数据继续留在库里的 `cache` 表。

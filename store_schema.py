@@ -191,6 +191,21 @@ class SchemaMixin(_StoreBase):
                     created_at INTEGER NOT NULL,
                     PRIMARY KEY (bot_id, platform, uid)
                 );
+
+                CREATE TABLE IF NOT EXISTS wardrobe (
+                    bot_id TEXT NOT NULL DEFAULT '',
+                    id TEXT NOT NULL,
+                    name TEXT NOT NULL DEFAULT '',
+                    slot TEXT NOT NULL DEFAULT '',
+                    scenes TEXT NOT NULL DEFAULT '[]',
+                    gender TEXT NOT NULL DEFAULT '通用',
+                    note TEXT NOT NULL DEFAULT '',
+                    enabled INTEGER NOT NULL DEFAULT 1,
+                    created REAL NOT NULL DEFAULT 0,
+                    updated_at INTEGER NOT NULL DEFAULT 0,
+                    PRIMARY KEY (bot_id, id)
+                );
+                CREATE INDEX IF NOT EXISTS idx_wardrobe_bot ON wardrobe(bot_id, created);
                 """
             )
             self._migrate_columns()

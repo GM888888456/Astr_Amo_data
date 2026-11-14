@@ -28,6 +28,7 @@ if TYPE_CHECKING:  # 只给类型检查看：包内相对导入
     from .store_messages import MessagesMixin
     from .store_logs import LogsMixin
     from .store_vitals import VitalsMixin
+    from .store_wardrobe import WardrobeMixin
     from .store_util import (
         DEFAULT_SETTINGS,
         KNOWN_PLATFORMS,
@@ -74,6 +75,7 @@ else:  # 运行时：包模式优先，按文件直接加载时退回绝对导�
         from .store_messages import MessagesMixin
         from .store_logs import LogsMixin
         from .store_vitals import VitalsMixin
+        from .store_wardrobe import WardrobeMixin
         from .store_util import (
             DEFAULT_SETTINGS,
             KNOWN_PLATFORMS,
@@ -119,6 +121,7 @@ else:  # 运行时：包模式优先，按文件直接加载时退回绝对导�
         from store_messages import MessagesMixin
         from store_logs import LogsMixin
         from store_vitals import VitalsMixin
+        from store_wardrobe import WardrobeMixin
         from store_util import (
             DEFAULT_SETTINGS,
             KNOWN_PLATFORMS,
@@ -200,7 +203,8 @@ __all__ = [
 ]
 
 
-class DataStore(SchemaMixin, PeopleMixin, MemoryMixin, MessagesMixin, LogsMixin, VitalsMixin):
+class DataStore(SchemaMixin, PeopleMixin, MemoryMixin, MessagesMixin, LogsMixin,
+                 VitalsMixin, WardrobeMixin):
     """连接/设置/关闭留在这一层，其余方法见各 mixin。"""
 
     _CN_NUM = {"零": 0, "一": 1, "二": 2, "两": 2, "三": 3, "四": 4,

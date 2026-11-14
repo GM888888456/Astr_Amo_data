@@ -83,7 +83,7 @@ else:  # 运行时：包模式优先，按文件直接加载时退回绝对导�
                 return ""
 
 PLUGIN_NAME = "Astr_Amo_data"
-PLUGIN_VERSION = "3.0.8"
+PLUGIN_VERSION = "3.0.9"
 DEFAULT_BOT_ID = "default"
 
 if TYPE_CHECKING:  # 只给类型检查看：包内相对导入
@@ -148,6 +148,60 @@ class MemoryAPI:
         except Exception as exc:
             logger.debug("[amo_data] 删除画像失败: %s" % exc)
             return {}
+
+    # ---------- 衣柜：终端判定，记忆库只存数据 ----------
+
+    async def wardrobe_rows(self, bot_id: str = "", only_enabled: bool = False) -> list:
+        try:
+            return await asyncio.to_thread(
+                self._store.wardrobe_rows, self._bot(bot_id), only_enabled
+            )
+        except Exception as exc:
+            logger.debug("[amo_data] 列衣柜失败: %s" % exc)
+            return []
+
+    async def wardrobe_count(self, bot_id: str = "", only_enabled: bool = True) -> int:
+        try:
+            return int(await asyncio.to_thread(
+                self._store.wardrobe_count, self._bot(bot_id), only_enabled
+            ))
+        except Exception as exc:
+            logger.debug("[amo_data] 数衣柜失败: %s" % exc)
+            return 0
+
+    async def wardrobe_save(self, bot_id: str, item: dict) -> bool:
+        try:
+            return bool(await asyncio.to_thread(
+                self._store.wardrobe_save, self._bot(bot_id), item or {}
+            ))
+        except Exception as exc:
+            logger.debug("[amo_data] 存衣服失败: %s" % exc)
+            return False
+
+    async def wardrobe_replace_all(self, bot_id: str, items: list) -> int:
+        try:
+            return int(await asyncio.to_thread(
+                self._store.wardrobe_replace_all, self._bot(bot_id), list(items or [])
+            ))
+        except Exception as exc:
+            logger.debug("[amo_data] 整库替换衣服失败: %s" % exc)
+            return 0
+
+    async def wardrobe_delete(self, bot_id: str, item_id: str) -> bool:
+        try:
+            return bool(await asyncio.to_thread(
+                self._store.wardrobe_delete, self._bot(bot_id), str(item_id or "")
+            ))
+        except Exception as exc:
+            logger.debug("[amo_data] 删衣服失败: %s" % exc)
+            return False
+
+    async def wardrobe_clear(self, bot_id: str) -> int:
+        try:
+            return int(await asyncio.to_thread(self._store.wardrobe_clear, self._bot(bot_id)))
+        except Exception as exc:
+            logger.debug("[amo_data] 清空衣柜失败: %s" % exc)
+            return 0
 
     async def remember(self, bot_id: str, uid: str, content: str, kind: str = "fact",
                        importance: float = 0.5, scope: str = "private",
