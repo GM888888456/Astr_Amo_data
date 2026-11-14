@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.2.0（日记搬进记忆库）
+
+- 新增 `diary` 表与 `DiaryMixin`（`store_diary.py`）：`diary_put / diary_get / diary_list / diary_delete / diary_count`。
+- 插件暴露 4 个异步接口，全部走 `to_thread`。
+- 新增 `tests/test_diary_store.py`（6 条）；248 条全绿。
+
+
 ## 3.1.2（面板「连接状态」不再挂三分钟）
 
 - 以前重试 20 次 × 8 秒超时：桥接不通时「连接状态：检查中…」要挂三分钟以上，看上去就是永远连不上。现在最多 2 次 × 3.5 秒，再退一步读 `status.link`，失败立刻写明原因并能点一下重试。

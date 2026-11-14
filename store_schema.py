@@ -206,6 +206,16 @@ class SchemaMixin(_StoreBase):
                     PRIMARY KEY (bot_id, id)
                 );
                 CREATE INDEX IF NOT EXISTS idx_wardrobe_bot ON wardrobe(bot_id, created);
+
+                CREATE TABLE IF NOT EXISTS diary (
+                    bot_id TEXT NOT NULL DEFAULT '',
+                    day TEXT NOT NULL,
+                    title TEXT NOT NULL DEFAULT '',
+                    text TEXT NOT NULL DEFAULT '',
+                    updated INTEGER NOT NULL DEFAULT 0,
+                    PRIMARY KEY (bot_id, day)
+                );
+                CREATE INDEX IF NOT EXISTS idx_diary_day ON diary(bot_id, day DESC);
                 """
             )
             self._migrate_columns()

@@ -83,7 +83,7 @@ else:  # 运行时：包模式优先，按文件直接加载时退回绝对导�
                 return ""
 
 PLUGIN_NAME = "Astr_Amo_data"
-PLUGIN_VERSION = "3.1.2"
+PLUGIN_VERSION = "3.2.0"
 DEFAULT_BOT_ID = "default"
 
 if TYPE_CHECKING:  # 只给类型检查看：包内相对导入
@@ -194,6 +194,42 @@ class MemoryAPI:
             ))
         except Exception as exc:
             logger.debug("[amo_data] 删衣服失败: %s" % exc)
+            return False
+
+    # ---------- 日记：终端搬过来的回忆 ----------
+
+    async def diary_put(self, bot_id: str, day: str, text: str, title: str = "") -> bool:
+        try:
+            return bool(await asyncio.to_thread(
+                self._store.diary_put, self._bot(bot_id), str(day or ""), str(text or ""), str(title or "")
+            ))
+        except Exception as exc:
+            logger.debug("[amo_data] 存日记失败: %s" % exc)
+            return False
+
+    async def diary_get(self, bot_id: str, day: str) -> str:
+        try:
+            return str(await asyncio.to_thread(
+                self._store.diary_get, self._bot(bot_id), str(day or "")
+            ) or "")
+        except Exception as exc:
+            logger.debug("[amo_data] 读日记失败: %s" % exc)
+            return ""
+
+    async def diary_list(self, bot_id: str = "") -> list:
+        try:
+            return await asyncio.to_thread(self._store.diary_list, self._bot(bot_id))
+        except Exception as exc:
+            logger.debug("[amo_data] 列日记失败: %s" % exc)
+            return []
+
+    async def diary_delete(self, bot_id: str, day: str) -> bool:
+        try:
+            return bool(await asyncio.to_thread(
+                self._store.diary_delete, self._bot(bot_id), str(day or "")
+            ))
+        except Exception as exc:
+            logger.debug("[amo_data] 删日记失败: %s" % exc)
             return False
 
     async def wardrobe_clear(self, bot_id: str) -> int:
