@@ -8,6 +8,12 @@
 
 陪伴插件只负责聊天和心情，**记忆、画像、关系网、日程缓存**都在这里。
 
+## 3.2.1（面板脚本中断修复）
+
+- 删掉 3.1.0 遗留在面板 JS 里的「日程」代码：`btnSchedClose` 等 7 个 DOM 引用随弹窗一起删了，绑定还在，脚本加载即 TypeError，连接状态永远停在「检查中…」。
+- 连接状态条恢复：终端 / 记忆库版本、bot_id 正常显示。
+- 全量测试通过。
+
 ## 3.2.0（日记搬进记忆库）
 
 - 新增 `diary` 表与 `DiaryMixin`（`store_diary.py`）：`diary_put / diary_get / diary_list / diary_delete / diary_count`。
