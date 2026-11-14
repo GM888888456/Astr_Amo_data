@@ -67,7 +67,7 @@
   <button data-tab="persons">人物</button>
   <button data-tab="chat">聊天</button>
   <button data-tab="backup">备份</button>
-  <button data-tab="records">记录</button>
+  <button data-tab="thoughts">想法</button>
 </nav>
 
 <main>
@@ -216,9 +216,10 @@
     </section>
 
 
-  <section class="panel" id="panel-records">
+  <section class="panel" id="panel-thoughts">
     <div class="card">
-      <div class="hint">只增不改：买了什么、拍了什么、想过但没买、为什么买股票。按时间倒序。</div>
+      <div class="hint">她的想法与记录：买了什么、拍了什么、想过但没买、为什么买股票。只增不改，按时间倒序。
+        原来在终端面板那一页，现在归记忆这边（终端只留日程这种"当下状态"）。</div>
     </div>
     <div class="list" id="recordList"></div>
   </section>
@@ -434,7 +435,7 @@ document.querySelectorAll("nav button").forEach((btn) => {
     const tab = btn.dataset.tab;
     if (tab === "persons") loadPersons();
     if (tab === "relations") loadRelations();
-    if (tab === "records") loadRecords();
+    if (tab === "thoughts") loadThoughts();
     if (tab === "chat") loadChat();
     if (tab === "backup") { loadBackups(); loadLogs(); }
   });
@@ -1103,7 +1104,7 @@ async function loadRelations() {
   }
 }
 
-async function loadRecords() {
+async function loadThoughts() {
   const box = document.getElementById("recordList");
   if (!box) return;
   box.textContent = "";
