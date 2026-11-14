@@ -1410,12 +1410,13 @@ document.getElementById("btnLogClear").addEventListener("click", async () => {
 
 /* ---- 连接状态：我这个挂载插件自己有没有连上终端/记忆库 ---- */
 function amoLinkDot(ok) { return '<span style="color:' + (ok ? "#2e9e5b" : "#d83b3b") + '">\u25cf</span>'; }
-function amoLinkRender(d) {
+function amoLinkRender(d, reason) {
   const box = document.getElementById("linkbar");
   if (!box) return;
   box.onclick = null;
   if (!d) {
-    box.innerHTML = '连接状态：读取失败（health 接口没响应，<span style="text-decoration:underline;cursor:pointer">点这里重试</span>）';
+    box.innerHTML = '连接状态：读取失败（' + (reason || "接口没响应")
+      + '，<span style="text-decoration:underline;cursor:pointer">点这里重试</span>）';
     box.onclick = () => amoLinkLoad();
     return;
   }
@@ -1431,14 +1432,28 @@ function amoLinkRender(d) {
 }
 
 async function amoLinkLoad() {
-  // 脚本可能比桥接先就绪，头几次拿不到数据就重试，别直接画「读不到」
-  for (let i = 0; i < 20; i += 1) {
-    let d = null;
-    try { d = objectFrom(await call("health")); } catch (e) { d = null; }
-    if (d && (d.terminal_connected !== undefined)) { amoLinkRender(d); return; }
-    await new Promise((resolve) => setTimeout(resolve, 400));
+  // 以前这里重试 20 次、每次等 8 秒超时：桥接不通时光是「检查中…」就要挂 3 分钟，
+  // 看起来就像永远连不上。现在最多两次、单次 3.5 秒，失败立刻说实话。
+  let reason = "";
+  for (let i = 0; i < 2; i += 1) {
+    try {
+      const d = objectFrom(await withTimeout(call("health"), 3500, "health"));
+      if (d && d.terminal_connected !== undefined) { amoLinkRender(d); return; }
+      reason = "health 返回里没有连接字段";
+    } catch (error) {
+      reason = (error && error.message) || String(error);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 500));
   }
-  amoLinkRender(null);
+  // 退一步用 status 里的 link（它和 health 是同一份数据，少一条请求也算兜底）
+  try {
+    const d = objectFrom(await withTimeout(call("status"), 3500, "status"));
+    if (d && d.link && d.link.terminal_connected !== undefined) { amoLinkRender(d.link); return; }
+    reason = reason || "status 里也没有连接信息";
+  } catch (error) {
+    reason = reason || ((error && error.message) || String(error));
+  }
+  amoLinkRender(null, reason);
 }
 
 amoLinkLoad();
